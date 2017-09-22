@@ -195,11 +195,6 @@ void construct_ss(simple_dstringset& ss, const alphabet_type& alpha) {
     /***********************
      *  Initial bucketing  *
      ***********************/
-
-    // detect alphabet and get encoding
-    // TODO: get alphabet from string set
-    //alpha = alphabet_type::from_sequence(input_begin, input_end, comm);
-
     unsigned int k = get_optimal_k<index_t>(alpha, ss.sum_sizes, comm);
     if(comm.rank() == 0) {
         INFO("Alphabet: " << alpha.unique_chars());
@@ -207,10 +202,12 @@ void construct_ss(simple_dstringset& ss, const alphabet_type& alpha) {
     }
     SAC_TIMER_END_SECTION("alphabet detection");
 
-    // create initial k-mers and use these as the initial bucket numbers
-    // for each character position
+    // create distributed sequences helper structure for the distributed stringset
     dist_seqs ds = dist_seqs::from_dss(ss, comm);
+
+    // create all kmers
     local_B = kmer_gen_stringset<index_t>(ss, k, alpha, comm);
+    // equally distribute kmers
     mxx::stable_distribute_inplace(local_B, comm);
     init_size(local_B.size());
     SAC_TIMER_END_SECTION("kmer generation");
